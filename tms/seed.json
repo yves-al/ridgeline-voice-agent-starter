@@ -1,0 +1,318 @@
+{
+  "scenario_time": "2026-11-02T09:00:00-07:00",
+  "drivers": [
+    {
+      "id": "D117",
+      "name": "Marcus Bell",
+      "truck": "117"
+    },
+    {
+      "id": "D104",
+      "name": "Dana Whitfield",
+      "truck": "104"
+    },
+    {
+      "id": "D122",
+      "name": "Luis Ortega",
+      "truck": "122"
+    },
+    {
+      "id": "D109",
+      "name": "Priya Raman",
+      "truck": "109"
+    },
+    {
+      "id": "D131",
+      "name": "Tom Keane",
+      "truck": "131"
+    },
+    {
+      "id": "D112",
+      "name": "Aisha Carter",
+      "truck": "112"
+    }
+  ],
+  "loads": [
+    {
+      "id": "RF-48213",
+      "driver": "D117",
+      "status": "in_transit",
+      "commodity": "paper goods",
+      "pickup": {
+        "facility": "shipper-rf-48213",
+        "window_start": "2026-11-02T06:00:00-07:00",
+        "window_end": "2026-11-02T07:00:00-07:00"
+      },
+      "delivery": {
+        "facility": "receiver-1",
+        "window_start": "2026-11-03T13:00:00-07:00",
+        "window_end": "2026-11-03T14:00:00-07:00"
+      },
+      "dispatch_order": 1
+    },
+    {
+      "id": "RF-48217",
+      "driver": "D104",
+      "status": "in_transit",
+      "commodity": "beverage",
+      "pickup": {
+        "facility": "shipper-rf-48217",
+        "window_start": "2026-11-02T06:00:00-07:00",
+        "window_end": "2026-11-02T07:00:00-07:00"
+      },
+      "delivery": {
+        "facility": "receiver-2",
+        "window_start": "2026-11-04T06:00:00-07:00",
+        "window_end": "2026-11-04T07:00:00-07:00"
+      }
+    },
+    {
+      "id": "RF-48220",
+      "driver": "D122",
+      "status": "in_transit",
+      "commodity": "packaged food",
+      "pickup": {
+        "facility": "shipper-rf-48220",
+        "window_start": "2026-11-02T06:00:00-07:00",
+        "window_end": "2026-11-02T07:00:00-07:00"
+      },
+      "delivery": {
+        "facility": "receiver-3",
+        "window_start": "2026-11-04T14:00:00-06:00",
+        "window_end": "2026-11-04T15:00:00-06:00"
+      }
+    },
+    {
+      "id": "RF-48224",
+      "driver": "D109",
+      "status": "in_transit",
+      "commodity": "auto parts",
+      "pickup": {
+        "facility": "shipper-rf-48224",
+        "window_start": "2026-11-02T06:00:00-07:00",
+        "window_end": "2026-11-02T07:00:00-07:00"
+      },
+      "delivery": {
+        "facility": "receiver-4",
+        "window_start": "2026-11-05T08:00:00-06:00",
+        "window_end": "2026-11-05T09:00:00-06:00"
+      }
+    },
+    {
+      "id": "RF-48231",
+      "driver": "D131",
+      "status": "in_transit",
+      "commodity": "building supplies",
+      "pickup": {
+        "facility": "shipper-rf-48231",
+        "window_start": "2026-11-02T06:00:00-07:00",
+        "window_end": "2026-11-02T07:00:00-07:00"
+      },
+      "delivery": {
+        "facility": "receiver-5",
+        "window_start": "2026-11-05T12:00:00-07:00",
+        "window_end": "2026-11-05T13:00:00-07:00"
+      }
+    },
+    {
+      "id": "RF-48236",
+      "driver": "D112",
+      "status": "in_transit",
+      "commodity": "paper goods",
+      "pickup": {
+        "facility": "shipper-rf-48236",
+        "window_start": "2026-11-02T06:00:00-07:00",
+        "window_end": "2026-11-02T07:00:00-07:00"
+      },
+      "delivery": {
+        "facility": "receiver-6",
+        "window_start": "2026-11-06T06:00:00-07:00",
+        "window_end": "2026-11-06T07:00:00-07:00"
+      }
+    },
+    {
+      "id": "RF-48000",
+      "driver": "D117",
+      "status": "delivered",
+      "pickup": {
+        "facility": "shipper-rf-48000",
+        "window_start": "2026-10-29T06:00:00-06:00",
+        "window_end": "2026-10-29T07:00:00-06:00"
+      },
+      "delivery": {
+        "facility": "receiver-1",
+        "window_start": "2026-10-30T13:00:00-06:00",
+        "window_end": "2026-10-30T14:00:00-06:00"
+      }
+    },
+    {
+      "id": "RF-48240",
+      "driver": "D117",
+      "status": "assigned",
+      "dispatch_order": 2,
+      "commodity": "packaged food",
+      "pickup": {
+        "facility": "salt-lake-shipper",
+        "window_start": "2026-11-04T08:00:00-07:00",
+        "window_end": "2026-11-04T09:00:00-07:00"
+      },
+      "delivery": {
+        "facility": "receiver-5",
+        "window_start": "2026-11-05T12:00:00-07:00",
+        "window_end": "2026-11-05T13:00:00-07:00"
+      }
+    },
+    {
+      "id": "RF-48245",
+      "driver": "D117",
+      "status": "assigned",
+      "dispatch_order": 3,
+      "commodity": "paper goods",
+      "pickup": {
+        "facility": "boise-shipper",
+        "window_start": "2026-11-06T08:00:00-07:00",
+        "window_end": "2026-11-06T09:00:00-07:00"
+      },
+      "delivery": {
+        "facility": "yard",
+        "window_start": "2026-11-09T14:00:00-07:00",
+        "window_end": "2026-11-09T15:00:00-07:00"
+      }
+    }
+  ],
+  "facilities": [
+    {
+      "id": "yard",
+      "address": "2210 Industrial Loop, Commerce City, Colorado",
+      "hours": "Monday to Saturday 5:00 AM to 9:00 PM Mountain. Closed Sunday. After hours, the breakdown line is answered 24/7.",
+      "gate_code": "4471#",
+      "dock_notes": "Check in with dispatch."
+    },
+    {
+      "id": "receiver-1",
+      "address": "100 Training Way, Salt Lake City, UT",
+      "hours": "06:00 to 18:00 local time",
+      "gate_code": "6100#",
+      "dock_notes": "Check in at receiving before backing into a dock."
+    },
+    {
+      "id": "receiver-2",
+      "address": "101 Training Way, Albuquerque, NM",
+      "hours": "06:00 to 18:00 local time",
+      "gate_code": "6101#",
+      "dock_notes": "Check in at receiving before backing into a dock."
+    },
+    {
+      "id": "receiver-3",
+      "address": "102 Training Way, Omaha, NE",
+      "hours": "06:00 to 18:00 local time",
+      "gate_code": "6102#",
+      "dock_notes": "Check in at receiving before backing into a dock."
+    },
+    {
+      "id": "receiver-4",
+      "address": "103 Training Way, Kansas City, MO",
+      "hours": "06:00 to 18:00 local time",
+      "gate_code": "6103#",
+      "dock_notes": "Check in at receiving before backing into a dock."
+    },
+    {
+      "id": "receiver-5",
+      "address": "104 Training Way, Boise, ID",
+      "hours": "06:00 to 18:00 local time",
+      "gate_code": "6104#",
+      "dock_notes": "Check in at receiving before backing into a dock."
+    },
+    {
+      "id": "receiver-6",
+      "address": "105 Training Way, Phoenix, AZ",
+      "hours": "06:00 to 18:00 local time",
+      "gate_code": "6105#",
+      "dock_notes": "Check in at receiving before backing into a dock."
+    },
+    {
+      "id": "salt-lake-shipper",
+      "address": "200 Training Way, Salt Lake City, UT",
+      "hours": "07:00 to 17:00 local time",
+      "gate_code": "6200#",
+      "dock_notes": "Check in at shipping with your load number."
+    },
+    {
+      "id": "boise-shipper",
+      "address": "300 Training Way, Boise, ID",
+      "hours": "07:00 to 17:00 local time",
+      "gate_code": "6300#",
+      "dock_notes": "Check in at shipping with your load number."
+    },
+    {
+      "id": "shipper-rf-48213",
+      "address": "400 Training Way, Denver, CO",
+      "hours": "05:00 to 18:00 local time",
+      "gate_code": "6400#",
+      "dock_notes": "Check in at shipping with your load number."
+    },
+    {
+      "id": "shipper-rf-48217",
+      "address": "400 Training Way, Cheyenne, WY",
+      "hours": "05:00 to 18:00 local time",
+      "gate_code": "6400#",
+      "dock_notes": "Check in at shipping with your load number."
+    },
+    {
+      "id": "shipper-rf-48220",
+      "address": "400 Training Way, Grand Junction, CO",
+      "hours": "05:00 to 18:00 local time",
+      "gate_code": "6400#",
+      "dock_notes": "Check in at shipping with your load number."
+    },
+    {
+      "id": "shipper-rf-48224",
+      "address": "400 Training Way, Pueblo, CO",
+      "hours": "05:00 to 18:00 local time",
+      "gate_code": "6400#",
+      "dock_notes": "Check in at shipping with your load number."
+    },
+    {
+      "id": "shipper-rf-48231",
+      "address": "400 Training Way, Denver, CO",
+      "hours": "05:00 to 18:00 local time",
+      "gate_code": "6400#",
+      "dock_notes": "Check in at shipping with your load number."
+    },
+    {
+      "id": "shipper-rf-48236",
+      "address": "400 Training Way, Fort Collins, CO",
+      "hours": "05:00 to 18:00 local time",
+      "gate_code": "6400#",
+      "dock_notes": "Check in at shipping with your load number."
+    },
+    {
+      "id": "shipper-rf-48000",
+      "address": "400 Training Way, Denver, CO",
+      "hours": "05:00 to 18:00 local time",
+      "gate_code": "6400#",
+      "dock_notes": "Check in at shipping with your load number."
+    }
+  ],
+  "kb": {
+    "name": "Ridgeline Freight",
+    "description": "Fictional 40-truck regional dry-van carrier. All names, loads and numbers are invented for a training exercise.",
+    "dispatch_hours": "Monday to Saturday 5:00 AM to 9:00 PM Mountain. Closed Sunday. After hours, the breakdown line is answered 24/7.",
+    "yard_address": "2210 Industrial Loop, Commerce City, Colorado",
+    "yard_gate_code": "4471#",
+    "breakdown_line": "303-555-0142 (24/7, say your truck number first)",
+    "safety_line": "303-555-0177 (accidents and injuries; call 911 first if anyone is hurt)",
+    "fuel_card": "Fuel at Pilot, Love's or TA only. The card covers diesel and DEF. Cash advances need a dispatcher's approval before you swipe.",
+    "scales": "Scale every load over 30,000 pounds before leaving the shipper. Ridgeline reimburses CAT scale tickets; keep the receipt.",
+    "detention": "Detention starts two hours after your appointment time. Send your in and out times to dispatch by text or the detention won't be billed.",
+    "check_calls": "Report your location and ETA by 9:00 AM every day you're under a load. Report again if the ETA moves more than one hour.",
+    "layover": "Layover pay applies after 24 hours at a shipper or receiver with no load assigned. Dispatch has to approve it the same day.",
+    "hours_and_pay": "Pay, settlement and HOS questions go to a dispatcher or payroll, not the driver line.",
+    "handoff_rules": {
+      "now": "truck not moving, safety, driver stuck at a gate or dock right now",
+      "today": "appointment at risk, detention or layover approval, paperwork problem",
+      "routine": "pay, scheduling preferences, general questions"
+    },
+    "dispatch_contact": "303-555-0100 (dispatch); after hours use the breakdown line for urgent help."
+  }
+}

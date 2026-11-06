@@ -1,0 +1,5 @@
+groq>=0.30
+sounddevice>=0.5
+silero-vad-lite>=0.4
+numpy>=1.26
+python-dotenv>=1.0
