@@ -1,4 +1,6 @@
 groq>=0.30
+langchain>=1.0
+langchain-groq>=1.0
 sounddevice>=0.5
 silero-vad-lite>=0.4
 numpy>=1.26

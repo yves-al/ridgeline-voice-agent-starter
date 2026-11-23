@@ -1,4 +1,4 @@
-"""LLM tool definitions and their executor.
+"""Tool executor (business rules) and the LangChain tools that wrap it.
 
 Design rules enforced here (in code, not just in the prompt):
 - The driver is identified once via identify_driver; write tools always use that
@@ -7,6 +7,9 @@ Design rules enforced here (in code, not just in the prompt):
   write, the cached result is returned instead of POSTing again.
 """
 import json
+from typing import Literal, Optional
+
+from langchain_core.tools import tool
 
 import tms_client as tms
 
@@ -14,61 +17,6 @@ CATEGORY_URGENCY = {
     'breakdown': 'now', 'safety_injury': 'now', 'gate_or_dock': 'now',
     'appointment_detention': 'today', 'paperwork': 'today', 'pay_general': 'routine',
 }
-
-TOOLS = [
-    {'type': 'function', 'function': {
-        'name': 'identify_driver',
-        'description': 'Look up the caller by truck number. Call this first, before anything else.',
-        'parameters': {'type': 'object', 'properties': {
-            'truck': {'type': 'string', 'description': 'Truck number, digits only, e.g. "117"'}},
-            'required': ['truck']}}},
-    {'type': 'function', 'function': {
-        'name': 'get_my_loads',
-        'description': "The identified driver's loads. Optionally filter by status.",
-        'parameters': {'type': 'object', 'properties': {
-            'status': {'type': 'string', 'enum': ['assigned', 'in_transit', 'delivered']}}}}},
-    {'type': 'function', 'function': {
-        'name': 'get_load',
-        'description': 'Details of one load, including pickup and delivery stops with facility ids.',
-        'parameters': {'type': 'object', 'properties': {
-            'load_id': {'type': 'string', 'description': 'e.g. RF-48213'}}, 'required': ['load_id']}}},
-    {'type': 'function', 'function': {
-        'name': 'get_facility',
-        'description': 'Address, hours, gate code and dock notes for a facility id.',
-        'parameters': {'type': 'object', 'properties': {
-            'facility_id': {'type': 'string'}}, 'required': ['facility_id']}}},
-    {'type': 'function', 'function': {
-        'name': 'get_company_info',
-        'description': 'Company facts and policies (fuel card, phone lines, detention, etc.). '
-                       'Omit topic to list every topic.',
-        'parameters': {'type': 'object', 'properties': {'topic': {'type': 'string'}}}}},
-    {'type': 'function', 'function': {
-        'name': 'save_status_update',
-        'description': 'Save a driver status update (check call) to their assigned load. Only call '
-                       'AFTER the driver has confirmed location, ETA and notes out loud.',
-        'parameters': {'type': 'object', 'properties': {
-            'load_id': {'type': 'string'},
-            'location': {'type': 'string'},
-            'eta': {'type': 'string', 'description': 'ISO 8601 with timezone offset, e.g. 2026-11-03T13:30:00-07:00'},
-            'notes': {'type': 'string'},
-            'confirmed': {'type': 'boolean', 'description': 'true ONLY if the driver said yes to your read-back of these exact details in their latest message'}},
-            'required': ['load_id', 'location', 'eta', 'confirmed']}}},
-    {'type': 'function', 'function': {
-        'name': 'request_callback',
-        'description': 'Ask a dispatcher to call the driver back. Only call after the driver has given you a '
-                       'callback number. Pick the category that fits; urgency is set from it automatically.',
-        'parameters': {'type': 'object', 'properties': {
-            'callback_number': {'type': 'string', 'description': 'Exactly as the driver said it'},
-            'reason': {'type': 'string'},
-            'category': {'type': 'string', 'enum': list(CATEGORY_URGENCY),
-                         'description': 'breakdown = truck broke down or cannot move; safety_injury = accident, '
-                                        'injury or danger; gate_or_dock = stuck at a gate or dock right now; '
-                                        'appointment_detention = appointment at risk, waiting past appointment, '
-                                        'detention or layover approval; paperwork; pay_general = pay, '
-                                        'scheduling preferences, hours-of-service and other questions'},
-            'load_id': {'type': 'string', 'description': 'Optional; omit if unknown'}},
-            'required': ['callback_number', 'reason', 'category']}}},
-]
 
 
 class ToolExecutor:
@@ -207,4 +155,89 @@ class ToolExecutor:
     def _require_dispatch_contact(self):
         contact = self._kb_lines('dispatch_contact').get('dispatch_contact')
         if contact:
-            self.must_say.append(('end', f'Dispatch: {contact}', contact))
+            self.must_say.append(('replace', f"I wasn't able to save that. Please call dispatch: {contact}", contact))
+
+
+def make_tools(ex):
+    """LangChain tools bound to one ToolExecutor (one call = one session).
+
+    Every tool returns a JSON string; the guards live in ToolExecutor, not here."""
+
+    @tool(parse_docstring=True)
+    def identify_driver(truck: str) -> str:
+        """Look up the caller by truck number. Call this first, before anything else.
+
+        Args:
+            truck: Truck number, digits only, e.g. "117".
+        """
+        return ex.run('identify_driver', {'truck': truck})
+
+    @tool(parse_docstring=True)
+    def get_my_loads(status: Optional[Literal['assigned', 'in_transit', 'delivered']] = None) -> str:
+        """The identified driver's loads. Optionally filter by status.
+
+        Args:
+            status: Only return loads with this status.
+        """
+        return ex.run('get_my_loads', {'status': status} if status else {})
+
+    @tool(parse_docstring=True)
+    def get_load(load_id: str) -> str:
+        """Details of one load, including pickup and delivery stops with facility ids.
+
+        Args:
+            load_id: Load number, e.g. RF-48213.
+        """
+        return ex.run('get_load', {'load_id': load_id})
+
+    @tool(parse_docstring=True)
+    def get_facility(facility_id: str) -> str:
+        """Address, hours, gate code and dock notes for a facility id.
+
+        Args:
+            facility_id: Facility id from a load stop, e.g. receiver-1.
+        """
+        return ex.run('get_facility', {'facility_id': facility_id})
+
+    @tool(parse_docstring=True)
+    def get_company_info(topic: Optional[str] = None) -> str:
+        """Company facts and policies (fuel card, phone lines, detention, etc.). Omit topic to get everything.
+
+        Args:
+            topic: A single topic key. Leave empty to read all topics.
+        """
+        return ex.run('get_company_info', {'topic': topic} if topic else {})
+
+    @tool(parse_docstring=True)
+    def save_status_update(load_id: str, location: str, eta: str, confirmed: bool,
+                           notes: str = '') -> str:
+        """Save a driver status update (check call) to their load. Only call AFTER the driver said yes to your read-back.
+
+        Args:
+            load_id: The driver's in-transit load number.
+            location: Where the driver is.
+            eta: ISO 8601 with timezone offset, e.g. 2026-11-03T13:30:00-07:00.
+            confirmed: True only if the driver said yes to your read-back of these exact details in their latest message.
+            notes: Optional notes from the driver.
+        """
+        return ex.run('save_status_update', {'load_id': load_id, 'location': location, 'eta': eta,
+                                             'confirmed': confirmed, 'notes': notes})
+
+    @tool(parse_docstring=True)
+    def request_callback(callback_number: str, reason: str,
+                         category: Literal['breakdown', 'safety_injury', 'gate_or_dock',
+                                           'appointment_detention', 'paperwork', 'pay_general'],
+                         load_id: Optional[str] = None) -> str:
+        """Ask a dispatcher to call the driver back. Only call after the driver gave you a callback number.
+
+        Args:
+            callback_number: Exactly as the driver said it.
+            reason: Short reason for the callback.
+            category: breakdown = truck broke down or cannot move; safety_injury = accident, injury or danger; gate_or_dock = stuck at a gate or dock right now; appointment_detention = appointment at risk, waiting past appointment, detention or layover approval; paperwork; pay_general = pay, scheduling preferences, hours-of-service and other questions.
+            load_id: Optional; omit if unknown.
+        """
+        return ex.run('request_callback', {'callback_number': callback_number, 'reason': reason,
+                                           'category': category, **({'load_id': load_id} if load_id else {})})
+
+    return [identify_driver, get_my_loads, get_load, get_facility, get_company_info,
+            save_status_update, request_callback]

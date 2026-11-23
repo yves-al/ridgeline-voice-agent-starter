@@ -6,19 +6,23 @@ Text (for evals): .venv/bin/python agent.py --text
 Both share Agent.respond(); voice just wraps it with mic -> VAD -> Whisper and Orpheus -> speaker.
 """
 import argparse
-import json
 import os
+import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
 from groq import BadRequestError, Groq
+from langchain.agents import create_agent
+from langchain.agents.middleware import wrap_model_call
+from langchain_groq import ChatGroq
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.errors import GraphRecursionError
 
-from tools import TOOLS, ToolExecutor
+from tools import ToolExecutor, make_tools
 
 load_dotenv(Path(__file__).with_name('.env'))
 
 MODEL = 'openai/gpt-oss-20b'
-MAX_TOOL_ROUNDS = 8
 GREETING = 'Ridgeline dispatch. What is your truck number?'
 
 SYSTEM_PROMPT = """\
@@ -41,20 +45,42 @@ Hard rules:
 
 
 class Agent:
+    """LangChain `create_agent` graph + the per-call ToolExecutor that holds the guards."""
+
     def __init__(self):
+        # Raw Groq client is kept for speech-to-text and text-to-speech (voice.py).
         self.client = Groq(api_key=os.environ['GROQ_API_KEY'], timeout=30, max_retries=2)
         self.tools = ToolExecutor()
-        self.messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
+        self._force_identify = False
+        self.thread = {'configurable': {'thread_id': uuid.uuid4().hex}, 'recursion_limit': 20}
+        self.graph = create_agent(
+            ChatGroq(model=MODEL, reasoning_effort='low', max_tokens=1024, timeout=30, max_retries=2),
+            tools=make_tools(self.tools),
+            system_prompt=SYSTEM_PROMPT,
+            middleware=[self._identify_middleware()],
+            checkpointer=InMemorySaver(),  # keeps the conversation between turns
+        )
 
-    def _chat(self, **extra):
-        return self.client.chat.completions.create(
-            model=MODEL, messages=self.messages, tools=TOOLS,
-            reasoning_effort='low', max_completion_tokens=1024, **extra)
+    def _identify_middleware(self):
+        @wrap_model_call
+        def identify_first(request, handler):
+            """Until the driver is identified, a message containing a number must trigger the lookup."""
+            first_call = request.messages[-1].type == 'human'
+            if self._force_identify and first_call:
+                try:
+                    return handler(request.override(tool_choice='identify_driver'))
+                except BadRequestError:
+                    pass  # model answered in text instead; fall back to a normal call
+            return handler(request)
+        return identify_first
 
     def _with_required_lines(self, reply):
         """Safety and contact lines must be spoken even if the model forgets them."""
         start, end = [], []
         for position, text, marker in self.tools.must_say:
+            if position == 'replace':  # failed save: never trust the model with the contact details
+                self.tools.must_say = []
+                return text
             digits = ''.join(ch for ch in marker if ch.isdigit())
             reply_digits = ''.join(ch for ch in reply if ch.isdigit())
             already = (digits and digits in reply_digits) or (not digits and marker in reply.lower())
@@ -64,41 +90,21 @@ class Agent:
         return ' '.join(start + [reply] + end).strip()
 
     def respond(self, user_text):
-        """Take one driver utterance, run any tool calls, return the spoken reply."""
+        """Take one driver utterance, let the agent run its tools, return the spoken reply."""
         self.tools.note_driver_text(user_text)
-        self.messages.append({'role': 'user', 'content': user_text})
-        for _ in range(MAX_TOOL_ROUNDS):
-            extra = {}
-            # Until the driver is identified, a message containing a number must trigger the lookup.
-            if self.tools.driver is None and any(ch.isdigit() for ch in user_text) and _ == 0:
-                extra['tool_choice'] = {'type': 'function', 'function': {'name': 'identify_driver'}}
-            try:
-                result = self._chat(**extra)
-            except BadRequestError:
-                if not extra:
-                    raise
-                result = self._chat()  # forced tool call was not possible this turn
-            msg = result.choices[0].message
-            entry = {'role': 'assistant', 'content': msg.content or ''}
-            if msg.tool_calls:
-                entry['tool_calls'] = [
-                    {'id': c.id, 'type': 'function',
-                     'function': {'name': c.function.name, 'arguments': c.function.arguments}}
-                    for c in msg.tool_calls]
-            self.messages.append(entry)
-            if not msg.tool_calls:
-                reply = self._with_required_lines((msg.content or '').strip())
-                self.tools.last_agent_text = reply
-                return reply
-            for call in msg.tool_calls:
-                try:
-                    args = json.loads(call.function.arguments or '{}')
-                except json.JSONDecodeError:
-                    args = {}
-                output = self.tools.run(call.function.name, args)
-                print(f'  [tool] {call.function.name}({args}) -> {output[:160]}')
-                self.messages.append({'role': 'tool', 'tool_call_id': call.id, 'content': output})
-        return "Sorry, I'm having trouble. Please call dispatch directly."
+        self._force_identify = self.tools.driver is None and any(ch.isdigit() for ch in user_text)
+        before = len(self.graph.get_state(self.thread).values.get('messages', []))
+        try:
+            state = self.graph.invoke({'messages': [{'role': 'user', 'content': user_text}]}, self.thread)
+        except GraphRecursionError:
+            return "Sorry, I'm having trouble. Please call dispatch directly."
+        messages = state['messages']
+        for m in messages[before:]:
+            if m.type == 'tool':
+                print(f'  [tool] {m.name} -> {str(m.content)[:160]}')
+        reply = self._with_required_lines(str(messages[-1].content).strip())
+        self.tools.last_agent_text = reply
+        return reply
 
 
 def run_text(agent):

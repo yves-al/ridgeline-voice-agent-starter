@@ -11,13 +11,13 @@ Each scenario ran against a fresh TMS (`.venv/bin/python tms/server.py`). For ea
 | 1 | Truck 117: "What's my next load?" then "How many loads after this one?" | Next load RF-48240. Two loads after the current one. No records. | PASS | TODO | |
 | 2 | Truck 117: Denver, ETA Nov 3 1:30 PM, "Loaded, no issues"; agent reads back; "yes" | One check-call on RF-48213: D117, Denver, eta `2026-11-03T13:30:00-07:00`. | PASS | TODO | Passed twice after the read-back guard was added. |
 | 3 | Truck 109 asks for a schedule callback, gives 303-555-0109 | One callback: D109, 303-555-0109, urgency `routine`. | PASS | TODO | |
-| 3b | Truck 109: flat tire on I-70, gives number | Callback `now`, number correct. Reply includes breakdown line 303-555-0142. | FAIL, fix pending rerun | TODO | Callback was saved correctly but the reply left out the breakdown line. Fix: category-driven urgency and code that appends the line. Verified OFFLINE; the model rerun was blocked by the daily token limit. |
-| 4 | Truck 117: "Where can I fuel? Does the card cover DEF?" | Pilot, Love's or TA; diesel and DEF covered. No callback. | FAIL (latest run) | TODO | Passed once earlier. In the final regression run the agent said "I'm not sure" and offered a callback. It is flaky and needs prompt work and a rerun. |
+| 3b | Truck 109: flat tire on I-70, gives number | Callback `now`, number correct. Reply includes breakdown line 303-555-0142. | PASS | TODO | Earlier FAIL: reply left out the breakdown line. Fixed: category-driven urgency, and code appends the line. Passed on the LangChain agent. |
+| 4 | Truck 117: "Where can I fuel? Does the card cover DEF?" | Pilot, Love's or TA; diesel and DEF covered. No callback. | PASS | TODO | Failed once ("I'm not sure"), passed on the next two runs. Still somewhat flaky; rerun a few times. |
 | 5 | Truck 104 asks to update RF-48213 (D117's load) | Refused; no check-call. | PASS | TODO | |
 | 6 | Truck 117 asks to update RF-48000 (delivered) | Refused; no check-call. | PASS | TODO | |
 | 7 | Truck 112: "How much will I be paid?" then gives 303-555-0112 | Agent declines to answer pay, asks for a number, then saves one `routine` callback with that number. | PASS | TODO | Earlier FAIL: agent invented number 555-1234 and created two callbacks. Fixed: the tool rejects any number the driver didn't say. |
-| 8 | Outage (`--fail-check-calls`): truck 117 gives Denver, Nov 3 1:30 PM; "yes" | Agent says it was NOT saved and gives 303-555-0100. No check-call. | PASS | TODO | Earlier FAIL: invented "800-555-1234". Fixed. Passed in the latest regression run. |
-| 9 | Truck 117: "I was in an accident and someone is hurt. Call me at 303-555-0117." | Callback `now`. Reply says to contact emergency services first, then gives safety line 303-555-0177. | FAIL, fix pending rerun | TODO | Callback was saved but the reply was only "The callback request was recorded." Fix: code now adds the 911 sentence at the start and the safety line at the end. Verified OFFLINE; model rerun pending. |
+| 8 | Outage (`--fail-check-calls`): truck 117 gives Denver, Nov 3 1:30 PM; "yes" | Agent says it was NOT saved and gives 303-555-0100. No check-call. | PASS | TODO | Earlier FAILs: invented "800-555-1234" twice, the second time next to the real number. Fixed: the failure reply is now fully scripted from the KB. |
+| 9 | Truck 117: "I was in an accident and someone is hurt. Call me at 303-555-0117." | Callback `now`. Reply says to contact emergency services first, then gives safety line 303-555-0177. | PASS | TODO | Earlier FAIL: reply had no 911 or safety line. Fixed: code adds both. Passed on the LangChain agent. |
 | 10 | Same confirmed status update sent twice | One record only. | OFFLINE: PASS | TODO | Identical repeat call returns the cached result. Retry-after-503 with the same key has not been tested against a flaky server. |
 | 11 | Truck 117: "ETA tomorrow at 1:30 PM" | Agent asks which date, reads back, saves once after "yes". | PASS | TODO | Earlier FAIL: it guessed Nov 4, claimed "saved" and saved twice. Fixed: save is rejected unless the previous agent turn read back the details and asked a question. Passed in two runs. |
 | 12 | Unknown truck 999, twice | Agent can't find the truck, asks to repeat or offers a callback. No records. | PASS | TODO | |
@@ -47,9 +47,12 @@ Each scenario ran against a fresh TMS (`.venv/bin/python tms/server.py`). For ea
 | Code appends the breakdown line, or the 911 sentence plus the safety line, and the dispatch contact on failed saves | 3b, 8, 9 | Verified OFFLINE; 8 passes with the model |
 | Identify result includes the current load and delivery window; a number in the first message forces the lookup | all | Agent stopped re-asking for the truck number |
 | Callback load id dropped if it isn't the driver's | 3 | No `driver_mismatch` errors |
-| Prompt: read the whole KB with no topic | 4 | Passed once, then failed again |
+| Rebuilt the agent on LangChain `create_agent` (ChatGroq, `@tool` functions, `InMemorySaver`, middleware that forces the driver lookup) | all | Reran 2, 3b, 4, 5, 8, 9: all pass. Other scenarios not rerun after the migration. |
+| Failed saves now return a scripted reply with the KB dispatch contact | 8 | Pass |
+| Prompt: read the whole KB with no topic | 4 | Passed 3 of 4 runs |
 
 ## Known gaps
 - Nothing has been run in voice mode.
-- Scenarios 3b, 4 and 9 need a model rerun. The Groq daily token limit (200,000 tokens) was reached during testing, so wait for it to reset.
+- After the LangChain migration only scenarios 2, 3b, 4, 5, 8 and 9 were rerun; rerun the rest before handing in.
+- The Groq daily limit is 200,000 tokens, which a full eval pass can use up.
 - Retry after a 503 or timeout (same idempotency key) has only been reasoned about, not tested.
